@@ -2,15 +2,16 @@ console.log("Hello from your service worker!");
 const FILES_TO_CACHE = [
     "/",
     "/index.html",
-    "/style.css",
+    "/styles.css",
     "/icons/icon-192x192.png",
     "/icons/icon-512x512.png",
     "/manifest.webmanifest",
     "/indexdb.js",
-    "/index.js"
+    "/index.js",
+    "https://cdn.jsdelivr.net/npm/chart.js@2.8.0"
   ];
   
-  const CACHE_NAME = "static-cache-v2";
+  const CACHE_NAME = "static-cache-v3";
   const DATA_CACHE_NAME = "data-cache-v1";
   
   // installation
@@ -44,6 +45,11 @@ const FILES_TO_CACHE = [
 
   self.addEventListener("fetch", function (evt) {
     // cache successful requests to the API
+    // only GET requests can be cached; POSTs go straight to the network
+    if (evt.request.method !== "GET") {
+      return;
+    }
+
     if (evt.request.url.includes("/api/")) {
       evt.respondWith(
         caches.open(DATA_CACHE_NAME).then(cache => {
