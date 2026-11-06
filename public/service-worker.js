@@ -1,17 +1,18 @@
 console.log("Hello from your service worker!");
 const FILES_TO_CACHE = [
-    "/",
-    "/index.html",
-    "/styles.css",
-    "/icons/icon-192x192.png",
-    "/icons/icon-512x512.png",
-    "/manifest.webmanifest",
-    "/indexdb.js",
-    "/index.js",
+    "./",
+    "./index.html",
+    "./styles.css",
+    "./icons/icon-192x192.png",
+    "./icons/icon-512x512.png",
+    "./manifest.webmanifest",
+    "./indexdb.js",
+    "./index.js",
     "https://cdn.jsdelivr.net/npm/chart.js@2.8.0"
   ];
   
-  const CACHE_NAME = "static-cache-v3";
+  // relative paths so the app also works from a subfolder (e.g. GitHub Pages)
+  const CACHE_NAME = "static-cache-v4";
   const DATA_CACHE_NAME = "data-cache-v1";
   
   // installation
