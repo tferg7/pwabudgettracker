@@ -29,7 +29,13 @@ function saveRecord(record) {
     store.add(record);
 }
 
+// guards against two syncs at once (e.g. page load and the "online" event together)
+let syncing = false;
+
 function checkDatabase() {
+    if (syncing || !db) return;
+    syncing = true;
+
     const transaction = db.transaction(["money"], "readwrite");
 
     const store = transaction.objectStore("money");
@@ -37,22 +43,32 @@ function checkDatabase() {
     const getAll = store.getAll();
 
     getAll.onsuccess = function () {
-        if (getAll.result.length > 0) {
-            fetch("/api/transaction/bulk", {
-                method: "POST",
-                body: JSON.stringify(getAll.result),
-                headers: {
-                    Accept: "application/json, text/plain, */*",
-                    "Content-Type": "application/json"
-                }
-            })
-                .then(response => response.json())
-                .then(() => {
-                    const transaction = db.transaction(["money"], "readwrite");
-                    const store = transaction.objectStore("transactions");
-                    store.clear();
-                });
+        if (getAll.result.length === 0) {
+            syncing = false;
+            return;
         }
+        fetch("/api/transaction/bulk", {
+            method: "POST",
+            body: JSON.stringify(getAll.result),
+            headers: {
+                Accept: "application/json, text/plain, */*",
+                "Content-Type": "application/json"
+            }
+        })
+            .then(response => {
+                if (!response.ok) throw new Error("Bulk upload failed");
+                return response.json();
+            })
+            .then(() => {
+                // records are on the server now, so clear the offline store
+                const transaction = db.transaction(["money"], "readwrite");
+                const store = transaction.objectStore("money");
+                store.clear();
+            })
+            .catch(err => console.log("Will retry offline sync later", err))
+            .finally(() => {
+                syncing = false;
+            });
     };
 }
 

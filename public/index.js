@@ -7,21 +7,25 @@ fetch("/api/transaction")
   })
   .then(data => {
     // save db data on global variable
-    transactions = data;
+    transactions = Array.isArray(data) ? data : [];
 
     populateTotal();
     populateTable();
     populateChart();
+  })
+  .catch(err => {
+    // offline with nothing cached yet
+    console.log("Could not load transactions", err);
   });
 
 function populateTotal() {
   // reduce transaction amounts to a single total value
   let total = transactions.reduce((total, t) => {
-    return total + parseInt(t.value);
+    return total + parseFloat(t.value);
   }, 0);
 
   let totalEl = document.querySelector("#total");
-  totalEl.textContent = total;
+  totalEl.textContent = total.toFixed(2);
 }
 
 function populateTable() {
@@ -30,11 +34,13 @@ function populateTable() {
 
   transactions.forEach(transaction => {
     // create and populate a table row
+    // textContent so a transaction name can't inject HTML
     let tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${transaction.name}</td>
-      <td>${transaction.value}</td>
-    `;
+    let nameTd = document.createElement("td");
+    let valueTd = document.createElement("td");
+    nameTd.textContent = transaction.name;
+    valueTd.textContent = transaction.value;
+    tr.append(nameTd, valueTd);
 
     tbody.appendChild(tr);
   });
@@ -53,7 +59,7 @@ function populateChart() {
 
   // create incremental values for chart
   let data = reversed.map(t => {
-    sum += parseInt(t.value);
+    sum += parseFloat(t.value);
     return sum;
   });
 
@@ -95,7 +101,7 @@ function sendTransaction(isAdding) {
   // create record
   let transaction = {
     name: nameEl.value,
-    value: amountEl.value,
+    value: parseFloat(amountEl.value),
     date: new Date().toISOString()
   };
 
