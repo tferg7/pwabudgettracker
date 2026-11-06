@@ -33,6 +33,8 @@ function saveRecord(record) {
 let syncing = false;
 
 function checkDatabase() {
+    // no server to sync with in demo mode (GitHub Pages)
+    if (typeof DEMO_MODE !== "undefined" && DEMO_MODE) return;
     if (syncing || !db) return;
     syncing = true;
 

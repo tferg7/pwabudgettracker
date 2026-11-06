@@ -1,10 +1,43 @@
 let transactions = [];
 let myChart;
 
-fetch("/api/transaction")
-  .then(response => {
-    return response.json();
-  })
+// On GitHub Pages there is no server, so the app runs as a demo that keeps
+// transactions in this browser's localStorage instead of MongoDB.
+const DEMO_MODE = location.hostname.endsWith("github.io");
+const DEMO_KEY = "budget-demo-transactions";
+
+const demoStore = {
+  load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(DEMO_KEY));
+      if (Array.isArray(saved)) return saved;
+    } catch (e) {
+      // storage unavailable; fall back to sample data
+    }
+    // a few sample transactions so the chart isn't empty on first visit
+    const day = 24 * 60 * 60 * 1000;
+    return [
+      { name: "Groceries", value: -86.4, date: new Date(Date.now() - 1 * day).toISOString() },
+      { name: "Freelance project", value: 450, date: new Date(Date.now() - 3 * day).toISOString() },
+      { name: "Utilities", value: -120.25, date: new Date(Date.now() - 6 * day).toISOString() },
+      { name: "Paycheck", value: 1500, date: new Date(Date.now() - 8 * day).toISOString() },
+    ];
+  },
+  save(list) {
+    try {
+      localStorage.setItem(DEMO_KEY, JSON.stringify(list));
+    } catch (e) {
+      // storage unavailable; changes last until the page is closed
+    }
+  },
+};
+
+if (DEMO_MODE) {
+  const banner = document.getElementById("demo-banner");
+  if (banner) banner.hidden = false;
+}
+
+(DEMO_MODE ? Promise.resolve(demoStore.load()) : fetch("/api/transaction").then(response => response.json()))
   .then(data => {
     // save db data on global variable
     transactions = Array.isArray(data) ? data : [];
@@ -39,7 +72,7 @@ function populateTable() {
     let nameTd = document.createElement("td");
     let valueTd = document.createElement("td");
     nameTd.textContent = transaction.name;
-    valueTd.textContent = transaction.value;
+    valueTd.textContent = Number(transaction.value).toFixed(2);
     tr.append(nameTd, valueTd);
 
     tbody.appendChild(tr);
@@ -118,6 +151,14 @@ function sendTransaction(isAdding) {
   populateTable();
   populateTotal();
   
+  // demo mode: keep everything in this browser
+  if (DEMO_MODE) {
+    demoStore.save(transactions);
+    nameEl.value = "";
+    amountEl.value = "";
+    return;
+  }
+
   // also send to server
   fetch("/api/transaction", {
     method: "POST",
